@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <title>匀变速直线运动位移与时间规律的探讨</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+      margin: 0;
+      padding: 15px;
+      background-color: #f5f5f5;
+    }
+
+    h2 {
+      font-size: 1.4rem;
+      margin-bottom: 15px;
+      color: #333;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    #container {
+      position: relative;
+      width: 100%;
+      height: 300px; /* 移动端适当降低高度 */
+      border: 1px solid #333;
+      margin: 10px 0 20px;
+      background-color: white;
+    }
+
+    /* 坐标系样式 */
+    .axis {
+      position: absolute;
+      background-color: #333;
+    }
+
+    #x-axis {
+      width: 100%;
+      height: 2px;
+      bottom: 0;
+      left: 0;
+    }
+
+    #y-axis {
+      width: 2px;
+      height: 100%;
+      bottom: 0;
+      left: 0;
+    }
+
+    /* 轴标签样式 */
+    .axis-label {
+      position: absolute;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    #x-label {
+      bottom: -25px;
+      right: 5px;
+    }
+
+    #y-label {
+      top: 5px;
+      left: -50px;
+      transform: rotate(-90deg);
+      transform-origin: top left;
+    }
+
+    /* 网格线样式 */
+    .grid {
+      position: absolute;
+      background-color: #eee;
+      z-index: 0;
+    }
+
+    .grid-horizontal {
+      width: 100%;
+      height: 1px;
+    }
+
+    .grid-vertical {
+      width: 1px;
+      height: 100%;
+    }
+
+    /* 刻度和刻度标签 */
+    .tick {
+      position: absolute;
+      background-color: #333;
+    }
+
+    .tick-horizontal {
+      width: 4px;
+      height: 2px;
+      bottom: 0;
+    }
+
+    .tick-vertical {
+      width: 2px;
+      height: 4px;
+      left: 0;
+    }
+
+    .tick-label {
+      position: absolute;
+      font-size: 10px;
+      transform: translateX(-50%);
+    }
+
+    .tick-label-horizontal {
+      bottom: -15px;
+      text-align: center;
+    }
+
+    .tick-label-vertical {
+      left: -25px;
+      transform: translateY(50%);
+      text-align: right;
+    }
+
+    /* 矩形样式 */
+    .rect {
+      position: absolute;
+      bottom: 0;
+      background-color: rgba(0, 120, 255, 0.5);
+      border: 1px solid rgba(0, 80, 200, 0.3);
+      z-index: 1;
+    }
+
+    /* 曲线样式 */
+    #curve {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      stroke: #ff3333;
+      stroke-width: 2;
+      fill: none;
+      z-index: 2;
+    }
+
+    /* 控制面板样式 */
+    #controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .slider-container, .param-container {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .param-container {
+      margin-bottom: 8px;
+    }
+
+    .param-container label {
+      font-size: 0.9rem;
+      flex-shrink: 0;
+      width: 45%;
+    }
+
+    .param-container input {
+      width: 55%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+
+    #slider {
+      flex-grow: 1;
+      padding: 5px 0;
+    }
+
+    .slider-container label {
+      font-size: 0.9rem;
+      min-width: 80px;
+    }
+
+    #slider-value {
+      min-width: 30px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    button {
+      padding: 10px 20px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+      font-size: 0.9rem;
+      width: 100%;
+      margin-top: 5px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    #info {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      background-color: white;
+      padding: 10px;
+      border-radius: 4px;
+      width: 100%;
+      border: 1px solid #eee;
+    }
+
+    .param-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      width: 100%;
+    }
+
+    /* 针对小屏幕的优化 */
+    @media (max-width: 360px) {
+      h2 {
+        font-size: 1.2rem;
+      }
+      
+      .param-container label {
+        font-size: 0.8rem;
+      }
+      
+      #info {
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h2>匀变速直线运动位移与时间规律的探讨</h2>
+  <div id="container">
+    <!-- 坐标系 -->
+    <div id="x-axis" class="axis"></div>
+    <div id="y-axis" class="axis"></div>
+    
+    <!-- 轴标签 -->
+    <div id="x-label" class="axis-label">时间t/s</div>
+    <div id="y-label" class="axis-label">速度m/s</div>
+    
+    <!-- 曲线将通过JS绘制 -->
+    <svg id="curve" width="100%" height="100%"></svg>
+  </div>
+  
+  <div id="controls">
+    <div class="param-group">
+      <div class="param-container">
+        <label for="initial-velocity">初速度 (m/s):</label>
+        <input type="number" id="initial-velocity" value="0" step="0.1" min="0">
+      </div>
+      <div class="param-container">
+        <label for="acceleration">加速度 (m/s²):</label>
+        <input type="number" id="acceleration" value="2" step="0.1" min="0.1">
+      </div>
+      <div class="param-container">
+        <label for="max-time">最大时间 (s):</label>
+        <input type="number" id="max-time" value="10" step="1" min="1">
+      </div>
+    </div>
+    
+    <div class="slider-container">
+      <label for="slider">矩形数量:</label>
+      <input type="range" id="slider" min="1" max="100" value="5">
+      <span id="slider-value">5</span>
+    </div>
+    
+    <button id="reset">重置参数</button>
+    <p id="info">当前位移近似值: 计算中...</p>
+  </div>
+
+  <script>
+    const container = document.getElementById('container');
+    const slider = document.getElementById('slider');
+    const sliderValue = document.getElementById('slider-value');
+    const resetBtn = document.getElementById('reset');
+    const info = document.getElementById('info');
+    const curve = document.getElementById('curve');
+    const initialVelocityInput = document.getElementById('initial-velocity');
+    const accelerationInput = document.getElementById('acceleration');
+    const maxTimeInput = document.getElementById('max-time');
+
+    // 物理参数 - 匀变速直线运动: v(t) = v0 + a*t
+    let v0 = parseFloat(initialVelocityInput.value); // 初速度
+    let a = parseFloat(accelerationInput.value);    // 加速度
+    let tMax = parseFloat(maxTimeInput.value);      // 最大时间
+
+    // 初始化
+    let rectCount = 5;
+    drawAll();
+    createGridAndTicks();
+
+    // 速度函数: v(t) = v0 + a*t (匀加速直线运动)
+    function velocityFunction(t) {
+      return v0 + a * t;
+    }
+
+    // 绘制所有元素
+    function drawAll() {
+      drawRects(rectCount);
+      drawCurve();
+      updateInfo(rectCount);
+    }
+
+    // 绘制矩形
+    function drawRects(count) {
+      // 清除现有矩形
+      document.querySelectorAll('.rect').forEach(rect => rect.remove());
+
+      const containerWidth = container.offsetWidth;
+      const containerHeight = container.offsetHeight;
+
+      const tMin = 0;
+      const tMaxVal = tMax;
+      // 计算最大速度用于缩放
+      const vMax = velocityFunction(tMaxVal);
+      // 确保有最小高度，避免初速度为0时高度为0
+      const displayVMax = Math.max(vMax, 0.1);
+
+      const widthPerRect = containerWidth / count;
+
+      for (let i = 0; i < count; i++) {
+        // 计算时间点（使用每个区间的左端点，与面积计算保持一致）
+        const t = tMin + i * (tMaxVal - tMin) / count;
+        const v = velocityFunction(t);
+        
+        // 转换为屏幕坐标
+        const height = (v / displayVMax) * containerHeight;
+        const rect = document.createElement('div');
+        rect.className = 'rect';
+        rect.style.left = `${i * widthPerRect}px`;
+        rect.style.width = `${widthPerRect}px`;
+        rect.style.height = `${height}px`;
+        container.appendChild(rect);
+      }
+    }
+
+    // 绘制速度曲线
+    function drawCurve() {
+      const containerWidth = container.offsetWidth;
+      const containerHeight = container.offsetHeight;
+      const vMax = velocityFunction(tMax);
+      const displayVMax = Math.max(vMax, 0.1);
+      
+      // 创建路径数据
+      let pathData = '';
+      // 减少移动端的计算点数，提高性能
+      const step = Math.max(1, Math.floor(containerWidth / 100));
+      
+      for (let x = 0; x <= containerWidth; x += step) {
+        // 将x坐标转换为时间t
+        const t = (x / containerWidth) * tMax;
+        const v = velocityFunction(t);
+        // 将速度转换为y坐标（注意y轴向下为正，所以需要反转）
+        const y = containerHeight - (v / displayVMax) * containerHeight;
+        
+        if (x === 0) {
+          pathData += `M ${x} ${y}`; // 移动到起点
+        } else {
+          pathData += ` L ${x} ${y}`; // 绘制线段到下一点
+        }
+      }
+      
+      // 设置曲线路径
+      curve.innerHTML = `<path d="${pathData}" />`;
+    }
+
+    // 创建网格和刻度
+    function createGridAndTicks() {
+      const containerWidth = container.offsetWidth;
+      const containerHeight = container.offsetHeight;
+      // 移动端减少刻度数量，避免拥挤
+      const tickCountX = window.innerWidth < 360 ? 6 : 8;
+      const tickCountY = window.innerWidth < 360 ? 4 : 5;
+      
+      // 清除现有网格和刻度
+      document.querySelectorAll('.grid, .tick, .tick-label').forEach(el => el.remove());
+      
+      // 创建X轴刻度和网格
+      for (let i = 0; i <= tickCountX; i++) {
+        const ratio = i / tickCountX;
+        const x = ratio * containerWidth;
+        
+        // 刻度
+        const tick = document.createElement('div');
+        tick.className = 'tick tick-horizontal';
+        tick.style.left = `${x}px`;
+        container.appendChild(tick);
+        
+        // 刻度标签
+        const label = document.createElement('div');
+        label.className = 'tick-label tick-label-horizontal';
+        label.style.left = `${x}px`;
+        label.textContent = (ratio * tMax).toFixed(0);
+        container.appendChild(label);
+        
+        // 网格线（除了最后一条）
+        if (i < tickCountX) {
+          const grid = document.createElement('div');
+          grid.className = 'grid grid-vertical';
+          grid.style.left = `${x}px`;
+          container.appendChild(grid);
+        }
+      }
+      
+      // 创建Y轴刻度和网格
+      for (let i = 0; i <= tickCountY; i++) {
+        const ratio = i / tickCountY;
+        const vMax = velocityFunction(tMax);
+        const displayVMax = Math.max(vMax, 0.1);
+        
+        // 刻度
+        const tick = document.createElement('div');
+        tick.className = 'tick tick-vertical';
+        tick.style.bottom = `${ratio * containerHeight}px`;
+        container.appendChild(tick);
+        
+        // 刻度标签
+        const label = document.createElement('div');
+        label.className = 'tick-label tick-label-vertical';
+        label.style.bottom = `${ratio * containerHeight}px`;
+        label.textContent = (ratio * displayVMax).toFixed(1);
+        container.appendChild(label);
+        
+        // 网格线（除了最后一条）
+        if (i < tickCountY) {
+          const grid = document.createElement('div');
+          grid.className = 'grid grid-horizontal';
+          grid.style.bottom = `${ratio * containerHeight}px`;
+          container.appendChild(grid);
+        }
+      }
+    }
+
+    // 更新信息显示
+    function updateInfo(count) {
+      // 计算矩形总面积（位移近似值）
+      let totalArea = 0;
+      const tMin = 0;
+      const tMaxVal = tMax;
+      const dt = (tMaxVal - tMin) / count;
+      
+      // 使用区间左端点计算面积（与视觉呈现的矩形匹配）
+      for (let i = 0; i < count; i++) {
+        const t = tMin + i * dt;
+        const v = velocityFunction(t);
+        totalArea += v * dt;  // 每个矩形面积 = 速度 × 时间间隔
+      }
+      
+      // 计算精确值（匀变速直线运动位移公式：s = v0*t + 0.5*a*t²）
+      const exactArea = v0 * tMaxVal + 0.5 * a * tMaxVal * tMaxVal;
+      
+      // 明确区分显示两个值
+      info.innerHTML = `
+        <div>矩形数量: <strong>${count}</strong></div>
+        <div>位移近似值: <strong>${totalArea.toFixed(2)} m</strong></div>
+        <div>理论精确值: <strong>${exactArea.toFixed(2)} m</strong></div>
+        <div>绝对误差: <strong>${Math.abs(totalArea - exactArea).toFixed(4)} m</strong></div>
+      `;
+    }
+
+    // 事件监听
+    slider.addEventListener('input', () => {
+      rectCount = parseInt(slider.value);
+      sliderValue.textContent = rectCount;
+      drawAll();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      // 重置为默认参数
+      initialVelocityInput.value = 0;
+      accelerationInput.value = 2;
+      maxTimeInput.value = 10;
+      rectCount = 5;
+      slider.value = 5;
+      sliderValue.textContent = 5;
+      
+      // 更新参数并重新绘制
+      updateParameters();
+      createGridAndTicks();
+      drawAll();
+    });
+
+    // 参数输入变化时更新
+    function updateParameters() {
+      v0 = parseFloat(initialVelocityInput.value) || 0;
+      a = parseFloat(accelerationInput.value) || 2;
+      tMax = parseFloat(maxTimeInput.value) || 10;
+    }
+
+    // 监听参数输入变化
+    initialVelocityInput.addEventListener('input', () => {
+      updateParameters();
+      createGridAndTicks();
+      drawAll();
+    });
+
+    accelerationInput.addEventListener('input', () => {
+      updateParameters();
+      createGridAndTicks();
+      drawAll();
+    });
+
+    maxTimeInput.addEventListener('input', () => {
+      updateParameters();
+      createGridAndTicks();
+      drawAll();
+    });
+
+    // 窗口大小变化时重新绘制
+    window.addEventListener('resize', () => {
+      createGridAndTicks();
+      drawAll();
+    });
+
+    // 优化触摸设备上的输入体验
+    const inputs = document.querySelectorAll('input');
+    inputs.forEach(input => {
+      input.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+      });
+    });
+  </script>
+</body>
+</html>
+    
