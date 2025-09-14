@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>物理互动模拟实验</title>
+    <style>
+        /* 保持原有样式不变 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+            background: linear-gradient(135deg, #f0f4f8 0%, #e4eaf1 100%);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 20px;
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .author {
+            font-size: 1.1rem;
+            color: #7f8c8d;
+            font-style: italic;
+            font-weight: 400;
+        }
+        
+        /* 分类按钮样式 */
+        .category-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 50px;
+            flex-wrap: wrap;
+        }
+        
+        .category-btn {
+            padding: 15px 30px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+        }
+        
+        .category-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+            background-color: #2980b9;
+        }
+        
+        /* 实验卡片样式 */
+        .experiments {
+            display: none; /* 默认隐藏所有实验卡片 */
+        }
+        
+        .experiments.active {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
+        }
+        
+        .card h2 {
+            font-size: 1.4rem;
+            margin-bottom: 18px;
+            color: #2c3e50;
+        }
+        
+        .card p {
+            color: #6c7a86;
+            font-size: 0.98rem;
+            margin-bottom: 25px;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            color: #8a99a8;
+            font-size: 0.95rem;
+            padding: 20px 0;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .category-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .category-btn {
+                width: 80%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>
+                物理互动模拟实验
+                <span class="author">by 金惠吉</span>
+            </h1>
+        </header>
+        
+        <!-- 分类按钮 -->
+        <div class="category-buttons">
+            <button class="category-btn" onclick="showCategory('kinematics')">运动学</button>
+            <button class="category-btn" onclick="showCategory('statics')">静力学</button>
+            <button class="category-btn" onclick="showCategory('dynamics')">动力学</button>
+            <button class="category-btn" onclick="showCategory('electromagnetism')">电磁学</button>
+            <button class="category-btn" onclick="showCategory('optics')">光学</button>
+            <button class="category-btn" onclick="showCategory('vibration_and_waves')">机械振动与波</button>
+        </div>
+        
+        <!-- 运动学实验（放在"kinematics"文件夹中） -->
+        <div class="experiments" id="kinematics">
+            <div class="card" onclick="window.location.href='kinematics/velocity_time_graph_mobile.html'">
+                <h2>匀变速直线运动位移与时间规律的探讨</h2>
+                <p>探究速度-时间图像中面积与位移的关系，通过矩形逼近理解积分思想</p>
+            </div>
+
+        </div>
+        
+        <!-- 静力学实验（放在"statics"文件夹中） -->
+        <div class="experiments" id="statics">
+            <div class="card" onclick="window.location.href='statics/Solving Dynamic Equilibrium Problems Using the Similar Triangles Method.html'">
+                <h2>用相似三角形法解决动态平衡问题</h2>
+                <p>通过相似三角形法分析动态平衡问题，直观理解力的平衡条件</p>
+            </div>
+            
+            <div class="card" onclick="window.location.href='statics/Dynamic Equilibrium of a Small Ball in Contact with a Baffle on an Inclined Plane.html'">
+                <h2>斜面上小球与挡板接触的动态平衡</h2>
+                <p>探究斜面上小球在挡板作用下的动态平衡条件与力的变化规律</p>
+            </div>
+
+            <div class="card" onclick="window.location.href='statics/Problems of Dynamic Equilibrium of 3 Forces.html'">
+                <h2>三力作用下的几种动态平衡大集合</h2>
+                <p>探究几种不同情况下的动态平衡条件与力的变化规律</p>
+            </div>
+
+            <div class="card" onclick="window.location.href='statics/Equilibrium of a spatial force system.html'">
+                <h2>空间力系下的平衡</h2>
+                <p>感受空间力系下的平衡状态与力的合成</p>
+            </div>
+        </div>
+
+        <!-- 动力学实验（放在"dynamics"文件夹中） -->
+        <div class="experiments" id="dynamics">
+            <div class="card" onclick="window.location.href='dynamics/projectile-simulation.html'">
+                <h2>抛体运动模拟实验</h2>
+                <p>通过模拟抛体运动，直观感受抛体运动</p>
+            </div>
+        </div>
+
+        <!-- 电磁学实验（放在"electromagnetism"文件夹中） -->
+        <div class="experiments" id="electromagnetism">
+            <div class="card" onclick="window.location.href='electromagnetism/The Concept of Electric Field Intensity.html'">
+                <h2>电场强度概念（三个点电荷）</h2>
+                <p>研究三个点电荷形成的电场分布，理解电场强度的叠加原理</p>
+            </div>
+        </div>
+
+        <!-- 光学实验（放在"optics"文件夹中） -->
+        <div class="experiments" id="optics">
+            <div class="card" onclick="window.location.href='optics/Convex Lens Imaging Light Path Diagram Demonstration.html'">
+                <h2>凸透镜成像光路图示范</h2>
+                <p>通过光路图示范，理解凸透镜成像的基本原理</p>
+            </div>
+
+            <div class="card" onclick="window.location.href='optics/Reflection, Total Internal Reflection, and Refraction of Light.html'">
+                <h2>光的反射、全反射与折射</h2>
+                <p>通过光路图示范，理解光的反射、全反射与折射的基本原理</p>
+            </div>
+        </div>
+
+        <!-- 机械振动与波实验（放在"vibration_and_waves"文件夹中） -->
+        <div class="experiments" id="vibration_and_waves">
+            <div class="card" onclick="window.location.href='vibration_and_waves/Doppler effect.html'">
+                <h2>多普勒效应</h2>
+                <p>通过实验探究多普勒效应的产生及其应用</p>
+            </div>
+
+            <div class="card" onclick="window.location.href='vibration_and_waves/Superposition of Simple Harmonic Motions in the Same Direction.html'">
+                <h2>同方向简谐运动的叠加</h2>
+                <p>通过模拟实验探究同方向简谐运动的叠加现象及其规律，并加深对旋转矢量法的理解</p>
+            </div>
+        </div>
+        
+        <footer>
+            物理互动模拟实验集合 &copy; 2025
+        </footer>
+    </div>
+
+
+    <script>
+        // 显示选中的分类，隐藏其他分类
+        function showCategory(category) {
+            // 隐藏所有实验卡片
+            document.querySelectorAll('.experiments').forEach(el => {
+                el.classList.remove('active');
+            });
+            // 显示选中的分类
+            document.getElementById(category).classList.add('active');
+        }
+    </script>
+</body>
+</html>

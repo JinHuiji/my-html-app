@@ -6,6 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <title>匀变速直线运动位移与时间规律的探讨</title>
+   <button onclick="window.location.href='../index.html'" style="margin: 10px 0; padding: 8px 16px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">返回首页</button>
   <style>
     * {
       box-sizing: border-box;
@@ -38,6 +39,8 @@
       border: 1px solid #333;
       margin: 10px 0 20px;
       background-color: white;
+      padding-left: 40px; /* 为Y轴和标签留出空间 */
+      box-sizing: border-box; /* 确保padding不影响整体宽度 */
     }
 
     /* 坐标系样式 */
@@ -47,17 +50,17 @@
     }
 
     #x-axis {
-      width: 100%;
+      width: calc(100% - 40px); /* 调整X轴长度，减去左侧留白 */
       height: 2px;
       bottom: 0;
-      left: 0;
+      left: 40px; /* X轴从左侧留白后开始 */
     }
 
     #y-axis {
       width: 2px;
       height: 100%;
       bottom: 0;
-      left: 0;
+      left: 40px; /* Y轴右移，留出标签空间 */
     }
 
     /* 轴标签样式 */
@@ -73,10 +76,11 @@
     }
 
     #y-label {
-      top: 5px;
-      left: -50px;
-      transform: rotate(-90deg);
-      transform-origin: top left;
+      top: 50%;
+      left: 0; /* 调整Y轴标题位置 */
+      transform: translateY(-50%) rotate(-90deg);
+      transform-origin: left center;
+      white-space: nowrap; /* 防止标题换行 */
     }
 
     /* 网格线样式 */
@@ -87,13 +91,15 @@
     }
 
     .grid-horizontal {
-      width: 100%;
+      width: calc(100% - 40px); /* 调整水平网格线长度 */
       height: 1px;
+      left: 40px; /* 与Y轴对齐 */
     }
 
     .grid-vertical {
       width: 1px;
       height: 100%;
+      left: 40px; /* 与Y轴对齐 */
     }
 
     /* 刻度和刻度标签 */
@@ -111,7 +117,7 @@
     .tick-vertical {
       width: 2px;
       height: 4px;
-      left: 0;
+      left: 40px; /* 与Y轴对齐 */
     }
 
     .tick-label {
@@ -126,9 +132,10 @@
     }
 
     .tick-label-vertical {
-      left: -25px;
+      left: 30px; /* 调整Y轴刻度标签位置，使其在Y轴左侧 */
       transform: translateY(50%);
       text-align: right;
+      width: 25px; /* 固定宽度确保对齐 */
     }
 
     /* 矩形样式 */
@@ -138,17 +145,20 @@
       background-color: rgba(0, 120, 255, 0.5);
       border: 1px solid rgba(0, 80, 200, 0.3);
       z-index: 1;
+      left: 40px; /* 矩形从Y轴右侧开始绘制 */
     }
 
     /* 曲线样式 */
     #curve {
       position: absolute;
       bottom: 0;
-      left: 0;
+      left: 40px; /* 曲线从Y轴右侧开始绘制 */
       stroke: #ff3333;
       stroke-width: 2;
       fill: none;
       z-index: 2;
+      width: calc(100% - 40px); /* 调整曲线宽度 */
+      height: 100%;
     }
 
     /* 控制面板样式 */
@@ -248,6 +258,24 @@
       #info {
         font-size: 0.85rem;
       }
+      
+      #container {
+        padding-left: 35px; /* 小屏幕适当减少左侧留白 */
+      }
+      
+      #x-axis, #y-axis, .grid-vertical, .tick-vertical, .rect, #curve {
+        left: 35px; /* 小屏幕调整左侧位置 */
+      }
+      
+      .grid-horizontal {
+        width: calc(100% - 35px);
+        left: 35px;
+      }
+      
+      .tick-label-vertical {
+        left: 25px;
+        width: 20px;
+      }
     }
   </style>
 </head>
@@ -260,10 +288,10 @@
     
     <!-- 轴标签 -->
     <div id="x-label" class="axis-label">时间t/s</div>
-    <div id="y-label" class="axis-label">速度m/s</div>
+    <div id="y-label" class="axis-label">速度v/(m/s)</div> <!-- 更新Y轴标题 -->
     
     <!-- 曲线将通过JS绘制 -->
-    <svg id="curve" width="100%" height="100%"></svg>
+    <svg id="curve"></svg>
   </div>
   
   <div id="controls">
@@ -330,7 +358,7 @@
       // 清除现有矩形
       document.querySelectorAll('.rect').forEach(rect => rect.remove());
 
-      const containerWidth = container.offsetWidth;
+      const containerWidth = container.offsetWidth - 40; // 减去左侧留白
       const containerHeight = container.offsetHeight;
 
       const tMin = 0;
@@ -351,7 +379,7 @@
         const height = (v / displayVMax) * containerHeight;
         const rect = document.createElement('div');
         rect.className = 'rect';
-        rect.style.left = `${i * widthPerRect}px`;
+        rect.style.left = `${40 + i * widthPerRect}px`; // 加上左侧偏移
         rect.style.width = `${widthPerRect}px`;
         rect.style.height = `${height}px`;
         container.appendChild(rect);
@@ -360,7 +388,7 @@
 
     // 绘制速度曲线
     function drawCurve() {
-      const containerWidth = container.offsetWidth;
+      const containerWidth = container.offsetWidth - 40; // 减去左侧留白
       const containerHeight = container.offsetHeight;
       const vMax = velocityFunction(tMax);
       const displayVMax = Math.max(vMax, 0.1);
@@ -373,7 +401,7 @@
       for (let x = 0; x <= containerWidth; x += step) {
         // 将x坐标转换为时间t
         const t = (x / containerWidth) * tMax;
-        const v = velocityFunction(t);
+        const v = velocityFunction(t); // 使用v=v0+at计算速度
         // 将速度转换为y坐标（注意y轴向下为正，所以需要反转）
         const y = containerHeight - (v / displayVMax) * containerHeight;
         
@@ -390,7 +418,7 @@
 
     // 创建网格和刻度
     function createGridAndTicks() {
-      const containerWidth = container.offsetWidth;
+      const containerWidth = container.offsetWidth - 40; // 减去左侧留白
       const containerHeight = container.offsetHeight;
       // 移动端减少刻度数量，避免拥挤
       const tickCountX = window.innerWidth < 360 ? 6 : 8;
@@ -399,10 +427,14 @@
       // 清除现有网格和刻度
       document.querySelectorAll('.grid, .tick, .tick-label').forEach(el => el.remove());
       
+      // 计算最大速度用于刻度计算
+      const vMax = velocityFunction(tMax);
+      const displayVMax = Math.max(vMax, 0.1);
+      
       // 创建X轴刻度和网格
       for (let i = 0; i <= tickCountX; i++) {
         const ratio = i / tickCountX;
-        const x = ratio * containerWidth;
+        const x = 40 + ratio * containerWidth; // 加上左侧偏移
         
         // 刻度
         const tick = document.createElement('div');
@@ -429,8 +461,7 @@
       // 创建Y轴刻度和网格
       for (let i = 0; i <= tickCountY; i++) {
         const ratio = i / tickCountY;
-        const vMax = velocityFunction(tMax);
-        const displayVMax = Math.max(vMax, 0.1);
+        const vValue = ratio * displayVMax; // 计算实际速度值
         
         // 刻度
         const tick = document.createElement('div');
@@ -438,11 +469,11 @@
         tick.style.bottom = `${ratio * containerHeight}px`;
         container.appendChild(tick);
         
-        // 刻度标签
+        // 刻度标签 - 显示实际速度值
         const label = document.createElement('div');
         label.className = 'tick-label tick-label-vertical';
         label.style.bottom = `${ratio * containerHeight}px`;
-        label.textContent = (ratio * displayVMax).toFixed(1);
+        label.textContent = vValue.toFixed(1); // 显示一位小数
         container.appendChild(label);
         
         // 网格线（除了最后一条）
@@ -546,4 +577,3 @@
   </script>
 </body>
 </html>
-    

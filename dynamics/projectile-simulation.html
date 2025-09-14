@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>抛体运动模拟实验</title>
+<button onclick="window.location.href='../index.html'" style="margin: 10px 0; padding: 8px 16px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">返回首页</button>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 15px;
+      background-color: #f5f5f5;
+    }
+
+    h2 {
+      font-size: 1.4rem;
+      margin-bottom: 15px;
+      color: #333;
+      text-align: center;
+    }
+
+    #simulation-container {
+      position: relative;
+      width: 100%;
+      height: 400px;
+      border: 1px solid #333;
+      margin: 10px 0 20px;
+      background-color: white;
+      overflow: hidden;
+    }
+
+    /* 坐标系样式 */
+    .axis {
+      position: absolute;
+      background-color: #333;
+    }
+
+    #x-axis {
+      width: 100%;
+      height: 2px;
+      bottom: 0;
+      left: 0;
+    }
+
+    #y-axis {
+      width: 2px;
+      height: 100%;
+      bottom: 0;
+      left: 0;
+    }
+
+    /* 轴标签和刻度 */
+    .axis-label {
+      position: absolute;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    #x-label {
+      bottom: -25px;
+      right: 5px;
+    }
+
+    #y-label {
+      top: 5px;
+      left: -50px;
+      transform: rotate(-90deg);
+      transform-origin: top left;
+    }
+
+    .grid {
+      position: absolute;
+      background-color: #eee;
+      z-index: 0;
+    }
+
+    .grid-horizontal {
+      width: 100%;
+      height: 1px;
+    }
+
+    .grid-vertical {
+      width: 1px;
+      height: 100%;
+    }
+
+    .tick {
+      position: absolute;
+      background-color: #333;
+    }
+
+    .tick-horizontal {
+      width: 4px;
+      height: 2px;
+      bottom: 0;
+    }
+
+    .tick-vertical {
+      width: 2px;
+      height: 4px;
+      left: 0;
+    }
+
+    .tick-label {
+      position: absolute;
+      font-size: 10px;
+      transform: translateX(-50%);
+    }
+
+    .tick-label-horizontal {
+      bottom: -15px;
+      text-align: center;
+    }
+
+    .tick-label-vertical {
+      left: -25px;
+      transform: translateY(50%);
+      text-align: right;
+    }
+
+    /* 小球样式 */
+    #ball {
+      position: absolute;
+      width: 15px;
+      height: 15px;
+      background-color: #ff3333;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+    }
+
+    /* 轨迹样式 */
+    #trajectory {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 5;
+    }
+
+    /* 矢量样式 - 优化箭头对称性和对齐 */
+    .vector {
+      position: absolute;
+      transform-origin: 0 0;
+      z-index: 15;
+    }
+
+    .vector-line {
+      position: absolute;
+      height: 2px;
+      background-color: currentColor;
+      transform-origin: 0 0;
+    }
+
+    .vector-arrow {
+      position: absolute;
+      width: 0;
+      height: 0;
+      /* 优化箭头对称性 */
+      border-left: 6px solid currentColor;
+      border-top: 3px solid transparent;
+      border-bottom: 3px solid transparent;
+      transform-origin: 0 50%; /* 箭头以中线为原点旋转 */
+    }
+
+    #velocity-vector {
+      color: #0066cc;
+    }
+
+    #gravity-vector {
+      color: #ff6600;
+    }
+
+    /* 控制面板样式 */
+    #controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .slider-container {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .slider-container label {
+      font-size: 0.9rem;
+      min-width: 120px;
+    }
+
+    .slider-container input[type="range"] {
+      flex-grow: 1;
+    }
+
+    .slider-container span {
+      min-width: 40px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .position-control {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .position-control > div {
+      width: 48%;
+    }
+
+    button {
+      padding: 10px 20px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+      font-size: 0.9rem;
+      width: 100%;
+      margin-top: 5px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    #info {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      background-color: white;
+      padding: 10px;
+      border-radius: 4px;
+      width: 100%;
+      border: 1px solid #eee;
+      margin-top: 10px;
+    }
+
+    /* 角度指示器 */
+    #angle-indicator {
+      text-align: center;
+      margin: 5px 0;
+      font-weight: bold;
+    }
+
+    @media (max-width: 360px) {
+      h2 {
+        font-size: 1.2rem;
+      }
+      
+      .slider-container label {
+        font-size: 0.8rem;
+        min-width: 100px;
+      }
+      
+      #info {
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h2>抛体运动模拟实验</h2>
+  <div id="simulation-container">
+    <!-- 坐标系 -->
+    <div id="x-axis" class="axis"></div>
+    <div id="y-axis" class="axis"></div>
+    
+    <!-- 轴标签 -->
+    <div id="x-label" class="axis-label">水平距离 (m)</div>
+    <div id="y-label" class="axis-label">竖直高度 (m)</div>
+    
+    <!-- 小球 -->
+    <div id="ball"></div>
+    
+    <!-- 矢量 -->
+    <div id="velocity-vector" class="vector">
+      <div class="vector-line"></div>
+      <div class="vector-arrow"></div>
+    </div>
+    <div id="gravity-vector" class="vector">
+      <div class="vector-line"></div>
+      <div class="vector-arrow"></div>
+    </div>
+    
+    <!-- 轨迹 -->
+    <svg id="trajectory" width="100%" height="100%"></svg>
+  </div>
+  
+  <div id="controls">
+    <div id="angle-indicator">初速度方向: 45°</div>
+    
+    <div class="slider-container">
+      <label for="velocity-slider">初速度大小 (m/s):</label>
+      <input type="range" id="velocity-slider" min="1" max="30" value="20">
+      <span id="velocity-value">20</span>
+    </div>
+    
+    <div class="slider-container">
+      <label for="angle-slider">初速度角度 (°):</label>
+      <input type="range" id="angle-slider" min="0" max="90" value="45">
+      <span id="angle-value">45</span>
+    </div>
+    
+    <div class="slider-container">
+      <label for="gravity-slider">重力加速度 (m/s²):</label>
+      <input type="range" id="gravity-slider" min="1" max="20" step="0.1" value="9.8">
+      <span id="gravity-value">9.8</span>
+    </div>
+    
+    <div class="position-control">
+      <div class="slider-container">
+        <label for="x-position">x位置 (m):</label>
+        <input type="range" id="x-position" min="0" max="50" value="15">
+        <span id="x-position-value">15</span>
+      </div>
+      <div class="slider-container">
+        <label for="y-position">y位置 (m):</label>
+        <input type="range" id="y-position" min="0" max="100" value="15">
+        <span id="y-position-value">15</span>
+      </div>
+    </div>
+    
+    <button id="start-btn">开始模拟</button>
+    <button id="reset-btn">重置</button>
+    
+    <div id="info">
+      <div>当前状态: 准备就绪</div>
+      <div>水平速度: -- m/s</div>
+      <div>竖直速度: -- m/s</div>
+      <div>飞行时间: -- s</div>
+      <div>水平射程: -- m</div>
+    </div>
+  </div>
+
+  <script>
+    // 获取DOM元素
+    const container = document.getElementById('simulation-container');
+    const ball = document.getElementById('ball');
+    const trajectory = document.getElementById('trajectory');
+    const velocityVector = document.getElementById('velocity-vector');
+    const gravityVector = document.getElementById('gravity-vector');
+    const velocitySlider = document.getElementById('velocity-slider');
+    const velocityValue = document.getElementById('velocity-value');
+    const angleSlider = document.getElementById('angle-slider');
+    const angleValue = document.getElementById('angle-value');
+    const angleIndicator = document.getElementById('angle-indicator');
+    const gravitySlider = document.getElementById('gravity-slider');
+    const gravityValue = document.getElementById('gravity-value');
+    const xPositionSlider = document.getElementById('x-position');
+    const xPositionValue = document.getElementById('x-position-value');
+    const yPositionSlider = document.getElementById('y-position');
+    const yPositionValue = document.getElementById('y-position-value');
+    const startBtn = document.getElementById('start-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const info = document.getElementById('info');
+
+    // 物理参数
+    let v0 = parseFloat(velocitySlider.value);    // 初速度大小默认20
+    let angle = parseFloat(angleSlider.value);    // 初速度角度（度）
+    let g = parseFloat(gravitySlider.value);      // 重力加速度
+    let x0 = parseFloat(xPositionSlider.value);   // 初始X位置默认15
+    let y0 = parseFloat(yPositionSlider.value);   // 初始Y位置默认15
+
+    // 模拟参数
+    let isRunning = false;
+    let animationId = null;
+    let t = 0;               // 时间
+    let dt = 0.016;          // 时间步长（约16ms，对应60fps）
+    let scale = 5;           // 缩放比例（像素/米）
+    let trajectoryPoints = [];   // 轨迹点数组
+    let currentX = x0;       // 当前X位置
+    let currentY = y0;       // 当前Y位置
+    let currentVx;           // 当前水平速度
+    let currentVy;           // 当前竖直速度
+
+    // 初始化
+    updateBallPosition(x0, y0);
+    calculateInitialVelocities();
+    drawVectors(currentVx, currentVy);
+    createGridAndTicks();
+
+    // 计算初始速度分量
+    function calculateInitialVelocities() {
+      const radAngle = angle * Math.PI / 180;  // 角度转弧度
+      currentVx = v0 * Math.cos(radAngle);
+      currentVy = v0 * Math.sin(radAngle);  // 向上为正
+    }
+
+    // 更新小球位置（物理坐标转屏幕坐标）
+    function updateBallPosition(x, y) {
+      const containerWidth = container.offsetWidth;
+      const containerHeight = container.offsetHeight;
+      
+      // 转换为屏幕坐标（注意Y轴方向相反）
+      const screenX = x * scale;
+      const screenY = containerHeight - y * scale;
+      
+      ball.style.left = `${screenX}px`;
+      ball.style.top = `${screenY}px`;
+    }
+
+    // 绘制矢量 - 优化箭头与线段对齐
+    function drawVectors(vx, vy) {
+      const ballX = parseFloat(ball.style.left);
+      const ballY = parseFloat(ball.style.top);
+      
+      // 速度矢量
+      const velocityLength = Math.sqrt(vx * vx + vy * vy);
+      const velocityDisplayLength = Math.min(velocityLength * 3, 100);
+      const velocityAngle = Math.atan2(-vy, vx) * 180 / Math.PI;
+      
+      velocityVector.style.left = `${ballX}px`;
+      velocityVector.style.top = `${ballY}px`;
+      
+      // 矢量线设置
+      const velocityLine = velocityVector.querySelector('.vector-line');
+      velocityLine.style.width = `${velocityDisplayLength}px`;
+      velocityLine.style.transform = `rotate(${velocityAngle}deg)`;
+      
+      // 速度箭头设置 - 精确对齐线段中线
+      const velocityArrow = velocityVector.querySelector('.vector-arrow');
+      // 箭头向左移动3px，使其中线与线段对齐
+      velocityArrow.style.transform = `rotate(${velocityAngle}deg) translate(${velocityDisplayLength - 1}px, -1px)`;
+      
+      // 重力矢量
+      const gravityDisplayLength = g * 5;
+      gravityVector.style.left = `${ballX}px`;
+      gravityVector.style.top = `${ballY}px`;
+      
+      // 重力线设置
+      const gravityLine = gravityVector.querySelector('.vector-line');
+      gravityLine.style.width = `${gravityDisplayLength}px`;
+      gravityLine.style.transform = 'rotate(90deg)';
+      
+      // 重力箭头设置 - 精确对齐线段中线
+      const gravityArrow = gravityVector.querySelector('.vector-arrow');
+      // 箭头向左移动3px，使其中线与线段对齐
+      gravityArrow.style.transform = `rotate(90deg) translate(${gravityDisplayLength -3}px, 0.5px)`;
+    }
+
+    // 绘制轨迹
+    function drawTrajectory() {
+      if (trajectoryPoints.length < 2) return;
+      
+      let pathData = `M ${trajectoryPoints[0].x * scale} ${container.offsetHeight - trajectoryPoints[0].y * scale}`;
+      
+      for (let i = 1; i < trajectoryPoints.length; i++) {
+        const x = trajectoryPoints[i].x * scale;
+        const y = container.offsetHeight - trajectoryPoints[i].y * scale;
+        pathData += ` L ${x} ${y}`;
+      }
+      
+      trajectory.innerHTML = `<path d="${pathData}" stroke="#999" stroke-width="1" fill="none" />`;
+    }
+
+    // 创建网格和刻度
+    function createGridAndTicks() {
+      const containerWidth = container.offsetWidth;
+      const containerHeight = container.offsetHeight;
+      const tickCountX = window.innerWidth < 360 ? 6 : 8;
+      const tickCountY = window.innerWidth < 360 ? 4 : 6;
+      
+      // 清除现有网格和刻度
+      document.querySelectorAll('.grid, .tick, .tick-label').forEach(el => el.remove());
+      
+      // 计算最大显示距离
+      const maxX = containerWidth / scale;
+      const maxY = containerHeight / scale;
+      
+      // 创建X轴刻度和网格
+      for (let i = 0; i <= tickCountX; i++) {
+        const ratio = i / tickCountX;
+        const x = ratio * containerWidth;
+        const xValue = (ratio * maxX).toFixed(0);
+        
+        // 刻度
+        const tick = document.createElement('div');
+        tick.className = 'tick tick-horizontal';
+        tick.style.left = `${x}px`;
+        container.appendChild(tick);
+        
+        // 刻度标签
+        const label = document.createElement('div');
+        label.className = 'tick-label tick-label-horizontal';
+        label.style.left = `${x}px`;
+        label.textContent = xValue;
+        container.appendChild(label);
+        
+        // 网格线（除了最后一条）
+        if (i < tickCountX) {
+          const grid = document.createElement('div');
+          grid.className = 'grid grid-vertical';
+          grid.style.left = `${x}px`;
+          container.appendChild(grid);
+        }
+      }
+      
+      // 创建Y轴刻度和网格
+      for (let i = 0; i <= tickCountY; i++) {
+        const ratio = i / tickCountY;
+        const y = ratio * containerHeight;
+        const yValue = (ratio * maxY).toFixed(0);
+        
+        // 刻度
+        const tick = document.createElement('div');
+        tick.className = 'tick tick-vertical';
+        tick.style.bottom = `${y}px`;
+        container.appendChild(tick);
+        
+        // 刻度标签
+        const label = document.createElement('div');
+        label.className = 'tick-label tick-label-vertical';
+        label.style.bottom = `${y}px`;
+        label.textContent = yValue;
+        container.appendChild(label);
+        
+        // 网格线（除了最后一条）
+        if (i < tickCountY) {
+          const grid = document.createElement('div');
+          grid.className = 'grid grid-horizontal';
+          grid.style.bottom = `${y}px`;
+          container.appendChild(grid);
+        }
+      }
+    }
+
+    // 更新信息显示
+    function updateInfo(flightTime = null, range = null) {
+      let statusText = isRunning ? '模拟中' : '已停止';
+      let flightTimeText = flightTime !== null ? flightTime.toFixed(2) : '--';
+      let rangeText = range !== null ? range.toFixed(2) : '--';
+      let vxText = currentVx.toFixed(2);
+      let vyText = currentVy.toFixed(2);
+      
+      info.innerHTML = `
+        <div>当前状态: ${statusText}</div>
+        <div>水平速度: ${vxText} m/s</div>
+        <div>竖直速度: ${vyText} m/s</div>
+        <div>飞行时间: ${flightTimeText} s</div>
+        <div>水平射程: ${rangeText} m</div>
+      `;
+    }
+
+    // 动画循环
+    function animate() {
+      if (!isRunning) return;
+      
+      // 计算当前时间的位置和速度
+      currentVy -= g * dt;  // 竖直方向加速度影响（向上为正）
+      currentX += currentVx * dt;  // 水平方向匀速
+      currentY += currentVy * dt;  // 竖直方向变速
+      
+      // 更新小球位置
+      updateBallPosition(currentX, currentY);
+      
+      // 更新矢量
+      drawVectors(currentVx, currentVy);
+      
+      // 记录轨迹点
+      if (t % 0.05 < dt) {
+        trajectoryPoints.push({x: currentX, y: currentY});
+        drawTrajectory();
+      }
+      
+      // 计算总飞行时间和射程
+      let flightTime = null;
+      let range = null;
+      const radAngle = angle * Math.PI / 180;
+      const v0y = v0 * Math.sin(radAngle);
+      flightTime = (v0y + Math.sqrt(v0y * v0y + 2 * g * y0)) / g;
+      range = currentVx * flightTime + x0;
+      
+      // 更新信息
+      updateInfo(flightTime, range - x0);
+      
+      // 更新时间
+      t += dt;
+      
+      // 检查是否落地或超出边界
+      const containerHeight = container.offsetHeight;
+      const maxX = container.offsetWidth / scale;
+      
+      if (currentY < 0 || currentX > maxX) {
+        stopSimulation();
+      } else {
+        animationId = requestAnimationFrame(animate);
+      }
+    }
+
+    // 开始模拟
+    function startSimulation() {
+      if (isRunning) return;
+      
+      isRunning = true;
+      startBtn.textContent = "暂停模拟";
+      t = 0;
+      trajectoryPoints = [];
+      trajectory.innerHTML = "";
+      
+      // 重置当前位置和速度
+      currentX = x0;
+      currentY = y0;
+      calculateInitialVelocities();
+      
+      // 开始动画
+      animationId = requestAnimationFrame(animate);
+    }
+
+    // 停止模拟
+    function stopSimulation() {
+      if (!isRunning) return;
+      
+      isRunning = false;
+      startBtn.textContent = "继续模拟";
+      cancelAnimationFrame(animationId);
+    }
+
+    // 重置模拟
+    function resetSimulation() {
+      stopSimulation();
+      
+      // 重置小球位置和速度
+      currentX = x0;
+      currentY = y0;
+      calculateInitialVelocities();
+      updateBallPosition(currentX, currentY);
+      
+      // 重置轨迹
+      trajectoryPoints = [];
+      trajectory.innerHTML = "";
+      
+      // 重置时间
+      t = 0;
+      
+      // 重新绘制初始矢量
+      drawVectors(currentVx, currentVy);
+      
+      // 更新信息
+      updateInfo();
+      
+      startBtn.textContent = "开始模拟";
+    }
+
+    // 事件监听
+    velocitySlider.addEventListener('input', () => {
+      v0 = parseFloat(velocitySlider.value);
+      velocityValue.textContent = v0;
+      
+      if (!isRunning) {
+        calculateInitialVelocities();
+        drawVectors(currentVx, currentVy);
+        updateInfo();
+      }
+    });
+
+    angleSlider.addEventListener('input', () => {
+      angle = parseFloat(angleSlider.value);
+      angleValue.textContent = angle;
+      angleIndicator.textContent = `初速度方向: ${angle}°`;
+      
+      if (!isRunning) {
+        calculateInitialVelocities();
+        drawVectors(currentVx, currentVy);
+        updateInfo();
+      }
+    });
+
+    gravitySlider.addEventListener('input', () => {
+      g = parseFloat(gravitySlider.value);
+      gravityValue.textContent = g;
+      
+      if (!isRunning) {
+        drawVectors(currentVx, currentVy);
+      }
+    });
+
+    xPositionSlider.addEventListener('input', () => {
+      x0 = parseFloat(xPositionSlider.value);
+      xPositionValue.textContent = x0;
+      
+      if (!isRunning) {
+        currentX = x0;
+        updateBallPosition(currentX, currentY);
+      }
+    });
+
+    yPositionSlider.addEventListener('input', () => {
+      y0 = parseFloat(yPositionSlider.value);
+      yPositionValue.textContent = y0;
+      
+      if (!isRunning) {
+        currentY = y0;
+        updateBallPosition(currentX, currentY);
+      }
+    });
+
+    startBtn.addEventListener('click', () => {
+      if (isRunning) {
+        stopSimulation();
+      } else {
+        startSimulation();
+      }
+    });
+
+    resetBtn.addEventListener('click', resetSimulation);
+
+    // 窗口大小变化时重新绘制
+    window.addEventListener('resize', () => {
+      createGridAndTicks();
+      if (!isRunning) {
+        updateBallPosition(currentX, currentY);
+        drawTrajectory();
+      }
+    });
+
+    // 初始化信息显示
+    updateInfo();
+  </script>
+</body>
+</html>
+    
