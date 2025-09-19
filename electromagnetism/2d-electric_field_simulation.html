@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>点电荷电场线模拟</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#EC4899',
+                        neutral: '#1F2937',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .canvas-container {
+                @apply relative bg-white rounded-lg shadow-lg overflow-hidden border-2 border-gray-200;
+            }
+            .control-panel {
+                @apply bg-gray-50 p-4 rounded-lg shadow border border-gray-200;
+            }
+            .btn {
+                @apply px-4 py-2 rounded-md transition-all duration-200 font-medium;
+            }
+            .btn-primary {
+                @apply bg-primary text-white hover:bg-primary/90 active:bg-primary/80;
+            }
+            .btn-secondary {
+                @apply bg-secondary text-white hover:bg-secondary/90 active:bg-secondary/80;
+            }
+            .btn-neutral {
+                @apply bg-gray-200 text-gray-800 hover:bg-gray-300 active:bg-gray-400;
+            }
+        }
+    </style>
+</head>
+<body>
+  <button onclick="window.location.href='../index.html'" style="margin: 10px 0; padding: 8px 16px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">返回首页</button>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 text-center">
+            <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-neutral mb-2">点电荷电场线模拟</h1>
+            <p class="text-gray-600 max-w-2xl mx-auto">可视化点电荷周围的电场线分布，展示电场线如何从正电荷出发并均匀分布</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- 控制面板 -->
+            <div class="lg:col-span-1">
+                <div class="control-panel h-full">
+                    <h2 class="text-xl font-semibold mb-4 text-neutral">控制面板</h2>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2">电荷类型</label>
+                        <div class="flex gap-2">
+                            <button id="positiveCharge" class="btn btn-primary flex-1">正电荷</button>
+                            <button id="negativeCharge" class="btn bg-gray-200 text-gray-800 flex-1">负电荷</button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="lineCount" class="block text-gray-700 mb-2">电场线数量</label>
+                        <input type="range" id="lineCount" min="8" max="48" step="4" value="24" 
+                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-sm text-gray-500 mt-1">
+                            <span>8</span>
+                            <span id="lineCountValue">24</span>
+                            <span>48</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="chargeStrength" class="block text-gray-700 mb-2">电荷强度</label>
+                        <input type="range" id="chargeStrength" min="1" max="10" step="1" value="5" 
+                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-sm text-gray-500 mt-1">
+                            <span>弱</span>
+                            <span id="chargeStrengthValue">中</span>
+                            <span>强</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="lineLength" class="block text-gray-700 mb-2">电场线长度</label>
+                        <input type="range" id="lineLength" min="50" max="300" step="10" value="150" 
+                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-sm text-gray-500 mt-1">
+                            <span>短</span>
+                            <span id="lineLengthValue">中</span>
+                            <span>长</span>
+                        </div>
+                    </div>
+                    
+                    <button id="redrawButton" class="btn btn-neutral w-full mt-4 flex items-center justify-center gap-2">
+                        <i class="fa fa-refresh"></i> 重新绘制
+                    </button>
+                    
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <h3 class="font-medium mb-2 text-gray-700">说明</h3>
+                        <p class="text-sm text-gray-600">
+                            电场线从正电荷出发，到负电荷终止。为了使电场线分布均匀，
+                            我们在电荷周围按照相等的角度间隔分布电场线，并根据库仑定律
+                            计算电场线的走向。
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 画布区域 -->
+            <div class="lg:col-span-3">
+                <div class="canvas-container">
+                    <canvas id="fieldCanvas" class="w-full"></canvas>
+                </div>
+                <div class="mt-4 text-center text-sm text-gray-500">
+                    提示：点击画布可以放置新的点电荷
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const canvas = document.getElementById('fieldCanvas');
+        const ctx = canvas.getContext('2d');
+        const positiveChargeBtn = document.getElementById('positiveCharge');
+        const negativeChargeBtn = document.getElementById('negativeCharge');
+        const lineCountSlider = document.getElementById('lineCount');
+        const lineCountValue = document.getElementById('lineCountValue');
+        const chargeStrengthSlider = document.getElementById('chargeStrength');
+        const chargeStrengthValue = document.getElementById('chargeStrengthValue');
+        const lineLengthSlider = document.getElementById('lineLength');
+        const lineLengthValue = document.getElementById('lineLengthValue');
+        const redrawButton = document.getElementById('redrawButton');
+        
+        // 电荷属性
+        let charges = [
+            { x: 0, y: 0, type: 'positive', strength: 5 }
+        ];
+        let currentChargeType = 'positive';
+        let lineCount = 24;
+        let chargeStrength = 5;
+        let lineLength = 150;
+        
+        // 设置画布尺寸
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = 500;
+            
+            // 确保初始电荷在画布中心
+            if (charges.length > 0) {
+                charges[0] = {
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    type: currentChargeType,
+                    strength: chargeStrength
+                };
+            }
+            drawFieldLines();
+        }
+        
+        // 初始化画布尺寸
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        
+        // 更新显示值
+        lineCountSlider.addEventListener('input', () => {
+            lineCount = parseInt(lineCountSlider.value);
+            lineCountValue.textContent = lineCount;
+            drawFieldLines();
+        });
+        
+        chargeStrengthSlider.addEventListener('input', () => {
+            chargeStrength = parseInt(chargeStrengthSlider.value);
+            const strengthLabels = ['弱', '较弱', '中弱', '中', '中强', '较强', '强', '很强', '极强', '最强'];
+            chargeStrengthValue.textContent = strengthLabels[chargeStrength - 1];
+            
+            // 更新最后一个电荷的强度
+            if (charges.length > 0) {
+                charges[charges.length - 1].strength = chargeStrength;
+            }
+            drawFieldLines();
+        });
+        
+        lineLengthSlider.addEventListener('input', () => {
+            lineLength = parseInt(lineLengthSlider.value);
+            const lengthLabels = ['短', '较短', '中短', '中', '中长', '较长', '长', '很长', '超长', '最长', '极长', '极限长'];
+            lineLengthValue.textContent = lengthLabels[Math.floor((lineLength - 50) / 25)];
+            drawFieldLines();
+        });
+        
+        // 选择电荷类型
+        positiveChargeBtn.addEventListener('click', () => {
+            currentChargeType = 'positive';
+            positiveChargeBtn.classList.add('bg-primary');
+            positiveChargeBtn.classList.remove('bg-gray-200', 'text-gray-800');
+            negativeChargeBtn.classList.remove('bg-secondary');
+            negativeChargeBtn.classList.add('bg-gray-200', 'text-gray-800');
+        });
+        
+        negativeChargeBtn.addEventListener('click', () => {
+            currentChargeType = 'negative';
+            negativeChargeBtn.classList.add('bg-secondary');
+            negativeChargeBtn.classList.remove('bg-gray-200', 'text-gray-800');
+            positiveChargeBtn.classList.remove('bg-primary');
+            positiveChargeBtn.classList.add('bg-gray-200', 'text-gray-800');
+        });
+        
+        // 重新绘制按钮
+        redrawButton.addEventListener('click', () => {
+            charges = [
+                { x: canvas.width / 2, y: canvas.height / 2, type: currentChargeType, strength: chargeStrength }
+            ];
+            drawFieldLines();
+        });
+        
+        // 点击画布添加新电荷
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            charges.push({
+                x: x,
+                y: y,
+                type: currentChargeType,
+                strength: chargeStrength
+            });
+            
+            drawFieldLines();
+        });
+        
+        // 计算两点之间的距离
+        function distance(x1, y1, x2, y2) {
+            return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        }
+        
+        // 计算给定点的电场强度向量
+        function calculateElectricField(x, y) {
+            let totalEx = 0;
+            let totalEy = 0;
+            
+            charges.forEach(charge => {
+                const r = distance(x, y, charge.x, charge.y);
+                
+                // 避免除以零
+                if (r < 5) return;
+                
+                // 库仑定律：E ∝ q / r²
+                const q = charge.type === 'positive' ? charge.strength : -charge.strength;
+                const E = q / (r * r);
+                
+                // 计算电场分量
+                const Ex = E * (x - charge.x) / r;
+                const Ey = E * (y - charge.y) / r;
+                
+                totalEx += Ex;
+                totalEy += Ey;
+            });
+            
+            return { x: totalEx, y: totalEy };
+        }
+        
+        // 绘制箭头 - 添加chargeType参数来确定箭头方向
+        function drawArrow(x1, y1, x2, y2, chargeType, headLength = 6, headAngle = Math.PI / 6) {
+            let dx = x2 - x1;
+            let dy = y2 - y1;
+            
+            // 负电荷时反转箭头方向
+            if (chargeType === 'negative') {
+                dx = -dx;
+                dy = -dy;
+            }
+            
+            const angle = Math.atan2(dy, dx);
+            
+            // 绘制主线
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            
+            // 绘制箭头头部 - 基于调整后的方向
+            ctx.beginPath();
+            ctx.moveTo(chargeType === 'positive' ? x2 : x1, chargeType === 'positive' ? y2 : y1);
+            ctx.lineTo(
+                (chargeType === 'positive' ? x2 : x1) - headLength * Math.cos(angle - headAngle),
+                (chargeType === 'positive' ? y2 : y1) - headLength * Math.sin(angle - headAngle)
+            );
+            ctx.lineTo(
+                (chargeType === 'positive' ? x2 : x1) - headLength * Math.cos(angle + headAngle),
+                (chargeType === 'positive' ? y2 : y1) - headLength * Math.sin(angle + headAngle)
+            );
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        // 绘制单个电场线 - 添加chargeType参数
+        function drawFieldLine(startX, startY, maxLength, stepSize = 2, direction = 1, chargeType) {
+            let x = startX;
+            let y = startY;
+            let totalLength = 0;
+            const points = [{x, y}]; // 存储电场线上的点
+            
+            while (totalLength < maxLength) {
+                const E = calculateElectricField(x, y);
+                
+                // 如果电场强度太小，停止绘制
+                const EMagnitude = Math.sqrt(E.x * E.x + E.y * E.y);
+                if (EMagnitude < 0.0001) break;
+                
+                // 标准化电场向量，乘以方向（正电荷为1，负电荷为-1）
+                const nx = (E.x / EMagnitude) * direction;
+                const ny = (E.y / EMagnitude) * direction;
+                
+                // 移动一小步
+                x += nx * stepSize;
+                y += ny * stepSize;
+                
+                // 检查是否超出画布
+                if (x < 0 || x > canvas.width || y < 0 || y > canvas.height) break;
+                
+                points.push({x, y});
+                totalLength += stepSize;
+            }
+            
+            // 绘制电场线和箭头
+            for (let i = 0; i < points.length - 1; i++) {
+                // 每20个点绘制一个箭头
+                if (i % 20 === 0 && i > 0) {
+                    drawArrow(
+                        points[i-1].x, points[i-1].y,
+                        points[i].x, points[i].y,
+                        chargeType  // 传递电荷类型用于箭头方向判断
+                    );
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(points[i].x, points[i].y);
+                    ctx.lineTo(points[i+1].x, points[i+1].y);
+                    ctx.stroke();
+                }
+            }
+            
+            // 在终点绘制一个箭头
+            if (points.length > 1) {
+                const last = points.length - 1;
+                drawArrow(
+                    points[last-1].x, points[last-1].y,
+                    points[last].x, points[last].y,
+                    chargeType  // 传递电荷类型用于箭头方向判断
+                );
+            }
+        }
+        
+        // 绘制所有电场线
+        function drawFieldLines() {
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 为每个电荷绘制电场线
+            charges.forEach(charge => {
+                // 设置线条样式
+                ctx.strokeStyle = charge.type === 'positive' ? '#3B82F6' : '#EC4899';
+                ctx.fillStyle = charge.type === 'positive' ? '#3B82F6' : '#EC4899';
+                ctx.lineWidth = 1.5;
+                
+                // 计算从电荷出发的电场线数量，与电荷强度成正比
+                const linesForThisCharge = Math.round(lineCount * (charge.strength / 10) + 8);
+                
+                // 确定方向：正电荷向外(1)，负电荷向内(-1)
+                const direction = charge.type === 'positive' ? 1 : -1;
+                
+                // 均匀分布电场线（按角度）
+                for (let i = 0; i < linesForThisCharge; i++) {
+                    const angle = (i / linesForThisCharge) * Math.PI * 2;
+                    
+                    // 从电荷周围稍微偏移一点的位置开始绘制，避免除以零
+                    const startRadius = 15;
+                    const startX = charge.x + Math.cos(angle) * startRadius * direction;
+                    const startY = charge.y + Math.sin(angle) * startRadius * direction;
+                    
+                    // 传递电荷类型给drawFieldLine函数
+                    drawFieldLine(startX, startY, lineLength, 2, direction, charge.type);
+                }
+                
+                // 绘制电荷本身
+                ctx.beginPath();
+                ctx.arc(charge.x, charge.y, 10, 0, Math.PI * 2);
+                ctx.fillStyle = charge.type === 'positive' ? '#3B82F6' : '#EC4899';
+                ctx.fill();
+                
+                // 绘制电荷符号
+                ctx.fillStyle = 'white';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(charge.type === 'positive' ? '+' : '-', charge.x, charge.y);
+            });
+        }
+        
+        // 初始绘制
+        drawFieldLines();
+    </script>
+</body>
+</html>

@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三维点电荷电场线模拟</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 引入Three.js库用于3D渲染 -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#EC4899',
+                        neutral: '#1F2937',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .canvas-container {
+                @apply relative bg-gray-900 rounded-lg shadow-lg overflow-hidden border-2 border-gray-700;
+            }
+            .control-panel {
+                @apply bg-gray-800 p-4 rounded-lg shadow border border-gray-700 text-gray-100;
+            }
+            .btn {
+                @apply px-4 py-2 rounded-md transition-all duration-200 font-medium;
+            }
+            .btn-primary {
+                @apply bg-primary text-white hover:bg-primary/90 active:bg-primary/80;
+            }
+            .btn-secondary {
+                @apply bg-secondary text-white hover:bg-secondary/90 active:bg-secondary/80;
+            }
+            .btn-neutral {
+                @apply bg-gray-700 text-gray-100 hover:bg-gray-600 active:bg-gray-500;
+            }
+        }
+    </style>
+</head>
+<body>
+  <button onclick="window.location.href='../index.html'" style="margin: 10px 0; padding: 8px 16px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">返回首页</button>
+
+<body class="bg-gray-900 min-h-screen p-4 md:p-8 text-gray-100">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 text-center">
+            <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-white mb-2">三维点电荷电场线模拟</h1>
+            <p class="text-gray-400 max-w-2xl mx-auto">3D可视化点电荷周围的电场线分布，电场线带有方向箭头</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- 控制面板 -->
+            <div class="lg:col-span-1">
+                <div class="control-panel h-full">
+                    <h2 class="text-xl font-semibold mb-4 text-white">控制面板</h2>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-300 mb-2">电荷类型</label>
+                        <div class="flex gap-2">
+                            <button id="positiveCharge" class="btn btn-primary flex-1">正电荷</button>
+                            <button id="negativeCharge" class="btn btn-secondary flex-1">负电荷</button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="lineCount" class="block text-gray-300 mb-2">电场线数量</label>
+                        <input type="range" id="lineCount" min="8" max="64" step="4" value="32" 
+                               class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-sm text-gray-400 mt-1">
+                            <span>8</span>
+                            <span id="lineCountValue">32</span>
+                            <span>64</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="chargeStrength" class="block text-gray-300 mb-2">电荷强度</label>
+                        <input type="range" id="chargeStrength" min="1" max="10" step="1" value="5" 
+                               class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-sm text-gray-400 mt-1">
+                            <span>弱</span>
+                            <span id="chargeStrengthValue">中</span>
+                            <span>强</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="lineLength" class="block text-gray-300 mb-2">电场线长度</label>
+                        <input type="range" id="lineLength" min="50" max="300" step="10" value="150" 
+                               class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-sm text-gray-400 mt-1">
+                            <span>短</span>
+                            <span id="lineLengthValue">中</span>
+                            <span>长</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="arrowSize" class="block text-gray-300 mb-2">箭头大小</label>
+                        <input type="range" id="arrowSize" min="1" max="10" step="1" value="5" 
+                               class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-sm text-gray-400 mt-1">
+                            <span>小</span>
+                            <span id="arrowSizeValue">中</span>
+                            <span>大</span>
+                        </div>
+                    </div>
+                    
+                    <button id="clearButton" class="btn btn-neutral w-full mt-2 flex items-center justify-center gap-2">
+                        <i class="fa fa-trash"></i> 清除所有
+                    </button>
+                    
+                    <div class="mt-6 pt-4 border-t border-gray-700">
+                        <h3 class="font-medium mb-2 text-gray-300">操作说明</h3>
+                        <ul class="text-sm text-gray-400 space-y-1">
+                            <li><i class="fa fa-mouse-pointer mr-1"></i> 左键点击场景：添加电荷</li>
+                            <li><i class="fa fa-arrows mr-1"></i> 拖动鼠标：旋转视角</li>
+                            <li><i class="fa fa-search-plus mr-1"></i> 滚轮：缩放场景</li>
+                            <li><i class="fa fa-hand-paper-o mr-1"></i> 右键拖动：平移场景</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 3D渲染区域 -->
+            <div class="lg:col-span-3">
+                <div class="canvas-container" style="height: 600px;">
+                    <div id="scene-container" class="w-full h-full"></div>
+                    <div class="absolute top-4 left-4 bg-black/50 px-3 py-1 rounded-full text-sm backdrop-blur-sm">
+                        点击场景添加电荷
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 3D场景初始化
+        const container = document.getElementById('scene-container');
+        
+        // 创建场景
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+        
+        // 添加网格辅助线
+        const gridHelper = new THREE.GridHelper(500, 20, 0x333344, 0x222233);
+        scene.add(gridHelper);
+        
+        // 添加坐标轴辅助线
+        const axesHelper = new THREE.AxesHelper(200);
+        scene.add(axesHelper);
+        
+        // 创建相机
+        const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.z = 400;
+        camera.position.y = 150;
+        camera.position.x = 150;
+        
+        // 创建渲染器
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        container.appendChild(renderer.domElement);
+        
+        // 添加轨道控制器，允许用户交互
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        
+        // 用于检测鼠标点击位置的射线投射器
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        // 电荷、电场线和箭头数据
+        let charges = [];
+        let fieldLines = []; // 存储线条对象
+        let fieldArrows = []; // 存储箭头对象
+        let currentChargeType = 'positive';
+        let lineCount = 32;
+        let chargeStrength = 5;
+        let lineLength = 150;
+        let arrowSize = 5;
+        
+        // 窗口大小调整处理
+        window.addEventListener('resize', () => {
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        });
+        
+        // 获取DOM元素
+        const positiveChargeBtn = document.getElementById('positiveCharge');
+        const negativeChargeBtn = document.getElementById('negativeCharge');
+        const lineCountSlider = document.getElementById('lineCount');
+        const lineCountValue = document.getElementById('lineCountValue');
+        const chargeStrengthSlider = document.getElementById('chargeStrength');
+        const chargeStrengthValue = document.getElementById('chargeStrengthValue');
+        const lineLengthSlider = document.getElementById('lineLength');
+        const lineLengthValue = document.getElementById('lineLengthValue');
+        const arrowSizeSlider = document.getElementById('arrowSize');
+        const arrowSizeValue = document.getElementById('arrowSizeValue');
+        const clearButton = document.getElementById('clearButton');
+        
+        // 更新显示值
+        lineCountSlider.addEventListener('input', () => {
+            lineCount = parseInt(lineCountSlider.value);
+            lineCountValue.textContent = lineCount;
+            redrawFieldLines();
+        });
+        
+        chargeStrengthSlider.addEventListener('input', () => {
+            chargeStrength = parseInt(chargeStrengthSlider.value);
+            const strengthLabels = ['弱', '较弱', '中弱', '中', '中强', '较强', '强', '很强', '极强', '最强'];
+            chargeStrengthValue.textContent = strengthLabels[chargeStrength - 1];
+        });
+        
+        lineLengthSlider.addEventListener('input', () => {
+            lineLength = parseInt(lineLengthSlider.value);
+            const lengthLabels = ['短', '较短', '中短', '中', '中长', '较长', '长', '很长', '超长', '最长', '极长'];
+            lineLengthValue.textContent = lengthLabels[Math.floor((lineLength - 50) / 25)];
+            redrawFieldLines();
+        });
+        
+        arrowSizeSlider.addEventListener('input', () => {
+            arrowSize = parseInt(arrowSizeSlider.value);
+            const sizeLabels = ['小', '较小', '中小', '中', '中中', '中中', '中大', '较大', '大', '很大'];
+            arrowSizeValue.textContent = sizeLabels[arrowSize - 1];
+            redrawFieldLines();
+        });
+        
+        // 选择电荷类型
+        positiveChargeBtn.addEventListener('click', () => {
+            currentChargeType = 'positive';
+            positiveChargeBtn.classList.add('bg-primary');
+            positiveChargeBtn.classList.remove('bg-gray-700');
+            negativeChargeBtn.classList.remove('bg-secondary');
+            negativeChargeBtn.classList.add('bg-gray-700');
+        });
+        
+        negativeChargeBtn.addEventListener('click', () => {
+            currentChargeType = 'negative';
+            negativeChargeBtn.classList.add('bg-secondary');
+            negativeChargeBtn.classList.remove('bg-gray-700');
+            positiveChargeBtn.classList.remove('bg-primary');
+            positiveChargeBtn.classList.add('bg-gray-700');
+        });
+        
+        // 清除所有电荷
+        clearButton.addEventListener('click', () => {
+            clearAllCharges();
+        });
+        
+        // 处理鼠标点击，在3D场景中添加电荷
+        container.addEventListener('click', (event) => {
+            // 计算鼠标在标准化设备坐标中的位置 (-1 到 1)
+            mouse.x = (event.clientX - container.getBoundingClientRect().left) / container.clientWidth * 2 - 1;
+            mouse.y = -(event.clientY - container.getBoundingClientRect().top) / container.clientHeight * 2 + 1;
+            
+            // 更新射线投射器
+            raycaster.setFromCamera(mouse, camera);
+            
+            // 创建一个无限平面来检测交点（y=0平面）
+            const plane = new THREE.Plane();
+            plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0));
+            
+            // 计算射线与平面的交点
+            const intersectionPoint = new THREE.Vector3();
+            raycaster.ray.intersectPlane(plane, intersectionPoint);
+            
+            // 在交点处添加电荷
+            addCharge(
+                intersectionPoint.x, 
+                intersectionPoint.y, 
+                intersectionPoint.z, 
+                currentChargeType, 
+                chargeStrength
+            );
+        });
+        
+        // 添加电荷
+        function addCharge(x, y, z, type, strength) {
+            // 创建电荷球体
+            const geometry = new THREE.SphereGeometry(10, 32, 32);
+            const material = new THREE.MeshBasicMaterial({
+                color: type === 'positive' ? 0x3B82F6 : 0xEC4899
+            });
+            const chargeSphere = new THREE.Mesh(geometry, material);
+            chargeSphere.position.set(x, y, z);
+            
+            // 添加电荷符号
+            const loader = new THREE.FontLoader();
+            loader.load('https://cdn.jsdelivr.net/npm/three@0.132.2/examples/fonts/helvetiker_regular.typeface.json', function(font) {
+                const textGeometry = new THREE.TextGeometry(type === 'positive' ? '+' : '-', {
+                    font: font,
+                    size: 10,
+                    height: 1
+                });
+                const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                textGeometry.center();
+                chargeSphere.add(textMesh);
+            });
+            
+            scene.add(chargeSphere);
+            
+            // 保存电荷数据
+            charges.push({
+                object: chargeSphere,
+                x: x,
+                y: y,
+                z: z,
+                type: type,
+                strength: strength
+            });
+            
+            // 重新绘制电场线
+            redrawFieldLines();
+        }
+        
+        // 清除所有电荷和电场线
+        function clearAllCharges() {
+            // 移除所有电荷
+            charges.forEach(charge => {
+                scene.remove(charge.object);
+            });
+            charges = [];
+            
+            // 移除所有电场线
+            fieldLines.forEach(line => {
+                scene.remove(line);
+            });
+            fieldLines = [];
+            
+            // 移除所有箭头
+            fieldArrows.forEach(arrow => {
+                scene.remove(arrow);
+            });
+            fieldArrows = [];
+        }
+        
+        // 重新绘制电场线
+        function redrawFieldLines() {
+            // 移除现有电场线
+            fieldLines.forEach(line => {
+                scene.remove(line);
+            });
+            fieldLines = [];
+            
+            // 移除所有箭头
+            fieldArrows.forEach(arrow => {
+                scene.remove(arrow);
+            });
+            fieldArrows = [];
+            
+            // 为每个电荷绘制新的电场线
+            charges.forEach(charge => {
+                drawFieldLinesForCharge(charge);
+            });
+        }
+        
+        // 创建箭头辅助函数
+        function createArrow(direction, position, color, size) {
+            const arrowGeometry = new THREE.ConeGeometry(size * 0.5, size * 1.5, 12);
+            const arrowMaterial = new THREE.MeshBasicMaterial({ color: color });
+            const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+            
+            // 定位箭头
+            arrow.position.copy(position);
+            
+            // 计算箭头方向
+            const axis = new THREE.Vector3(0, 1, 0);
+            const angle = Math.acos(axis.dot(direction.normalize()));
+            const cross = new THREE.Vector3().crossVectors(axis, direction);
+            
+            if (cross.lengthSq() > 0.0001) {
+                cross.normalize();
+                arrow.quaternion.setFromAxisAngle(cross, angle);
+            }
+            
+            return arrow;
+        }
+            
+        
+        // 为单个电荷绘制电场线
+        function drawFieldLinesForCharge(charge) {
+            const linesForThisCharge = Math.round(lineCount * (charge.strength / 10) + 8);
+            
+            // 在3D空间中均匀分布电场线方向
+            // 使用黄金螺旋算法生成均匀分布的点
+            for (let i = 0; i < linesForThisCharge; i++) {
+                const y = 1 - (i / (linesForThisCharge - 1)) * 2; // y从1到-1
+                const radius = Math.sqrt(1 - y * y); // 半径在单位球面上
+                
+                const theta = Math.PI * 2 * i * 0.618033988749895; // 黄金角
+                
+                const x = Math.cos(theta) * radius;
+                const z = Math.sin(theta) * radius;
+                
+                // 从电荷表面开始绘制
+                const startRadius = 12;
+                const startX = charge.x + x * startRadius;
+                const startY = charge.y + y * startRadius;
+                const startZ = charge.z + z * startRadius;
+
+                
+                // 绘制电场线和箭头
+                const {line, arrow} = createFieldLineWithArrow(
+                    startX, startY, startZ, 
+                    charge.type === 'positive' ? lineLength : -lineLength,
+                    charge.type === 'positive' ? 0x3B82F6 : 0xEC4899
+                );
+                
+                scene.add(line);
+                scene.add(arrow);
+                fieldLines.push(line);
+                fieldArrows.push(arrow);
+            }
+        }
+        
+         // 创建带箭头的单条电场线
+function createFieldLineWithArrow(startX, startY, startZ, maxLength, color) {
+    let x = startX;
+    let y = startY;
+    let z = startZ;
+    let totalLength = 0;
+    const stepSize = 3;
+    const points = [];
+    
+    points.push(new THREE.Vector3(x, y, z));
+    
+    while (Math.abs(totalLength) < Math.abs(maxLength)) {
+        const E = calculateElectricField(x, y, z);
+        
+        // 如果电场强度太小，停止绘制
+        const EMagnitude = Math.sqrt(E.x * E.x + E.y * E.y + E.z * E.z);
+        if (EMagnitude < 0.00001) break;
+        
+        // 标准化电场向量
+        const nx = E.x / EMagnitude;
+        const ny = E.y / EMagnitude;
+        const nz = E.z / EMagnitude;
+        
+        // 根据电荷类型确定方向
+        const direction = maxLength > 0 ? 1 : -1;
+        
+        // 移动一小步
+        x += nx * stepSize * direction;
+        y += ny * stepSize * direction;
+        z += nz * stepSize * direction;
+        
+        // 检查是否超出合理范围
+        if (Math.abs(x) > 1000 || Math.abs(y) > 1000 || Math.abs(z) > 1000) break;
+        
+        points.push(new THREE.Vector3(x, y, z));
+        totalLength += stepSize;
+    }
+    
+    // 创建线条几何体
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({ 
+        color: color,
+        linewidth: 1
+    });
+    const line = new THREE.Line(geometry, material);
+    
+    // 计算箭头位置（在线条中间位置）
+    const arrowPositionIndex = Math.floor(points.length / 2);
+    const adjustedIndex = Math.max(0, Math.min(arrowPositionIndex, points.length - 1));
+    const arrowPosition = points[adjustedIndex];
+    
+    // 计算箭头方向（关键修改：负电荷时反转方向）
+    let arrowDirection;
+    if (adjustedIndex < points.length - 1) {
+        arrowDirection = new THREE.Vector3().subVectors(
+            points[adjustedIndex + 1], 
+            points[adjustedIndex]
+        );
+    } else if (adjustedIndex > 0) {
+        arrowDirection = new THREE.Vector3().subVectors(
+            points[adjustedIndex], 
+            points[adjustedIndex - 1]
+        );
+    } else {
+        arrowDirection = new THREE.Vector3(1, 0, 0);
+    }
+    
+    // 关键修正：负电荷时反转箭头方向（maxLength为负表示负电荷）
+    if (maxLength < 0) {
+        arrowDirection.multiplyScalar(-1);
+    }
+    
+    // 创建箭头
+    const arrow = createArrow(arrowDirection, arrowPosition, color, arrowSize);
+    
+    return { line, arrow };
+}
+
+       /*
+// 创建带箭头的单条电场线
+        function createFieldLineWithArrow(startX, startY, startZ, maxLength, color) {
+            let x = startX;
+            let y = startY;
+            let z = startZ;
+            let totalLength = 0;
+            const stepSize = 3;
+            const points = [];
+            
+            points.push(new THREE.Vector3(x, y, z));
+            
+            while (Math.abs(totalLength) < Math.abs(maxLength)) {
+                const E = calculateElectricField(x, y, z);
+                
+                // 如果电场强度太小，停止绘制
+                const EMagnitude = Math.sqrt(E.x * E.x + E.y * E.y + E.z * E.z);
+                if (EMagnitude < 0.00001) break;
+                
+                // 标准化电场向量
+                const nx = E.x / EMagnitude;
+                const ny = E.y / EMagnitude;
+                const nz = E.z / EMagnitude;
+                
+
+                // 根据电荷类型确定方向
+                const direction = maxLength > 0 ? 1 : -1;
+                
+                // 移动一小步
+                x += nx * stepSize * direction;
+                y += ny * stepSize * direction;
+                z += nz * stepSize * direction;
+                
+                // 检查是否超出合理范围
+                if (Math.abs(x) > 1000 || Math.abs(y) > 1000 || Math.abs(z) > 1000) break;
+                
+                points.push(new THREE.Vector3(x, y, z));
+                totalLength += stepSize;
+            }
+            
+            // 创建线条几何体
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ 
+                color: color,
+                linewidth: 1
+            });
+            const line = new THREE.Line(geometry, material);
+            
+            // 计算箭头位置（在线条中间位置）
+            const arrowPositionIndex = Math.floor(points.length / 2);
+            if (arrowPositionIndex >= points.length) {
+                // 如果线条太短，使用最后一个点
+                arrowPositionIndex = Math.max(0, points.length - 1);
+            }
+            const arrowPosition = points[arrowPositionIndex];
+            
+            // 计算箭头方向（使用箭头位置前后的点来确定方向）
+            let arrowDirection;
+            if (arrowPositionIndex < points.length - 1) {
+                arrowDirection = new THREE.Vector3().subVectors(
+                    points[arrowPositionIndex + 1], 
+                    points[arrowPositionIndex]
+                );
+            } else if (arrowPositionIndex > 0) {
+                arrowDirection = new THREE.Vector3().subVectors(
+                    points[arrowPositionIndex], 
+                    points[arrowPositionIndex - 1]
+                );
+            } else {
+                // 如果只有一个点，使用初始方向
+                arrowDirection = new THREE.Vector3().subVectors(
+                    points[0], 
+                    new THREE.Vector3(startX, startY, startZ)
+                ).normalize();
+                if (!arrowDirection.length()) {
+                    arrowDirection = new THREE.Vector3(1, 0, 0);
+                }
+            }
+            
+            // 创建箭头
+            const arrow = createArrow(arrowDirection, arrowPosition, color, arrowSize);
+            
+            return { line, arrow };
+        }
+        */
+        // 计算给定点的电场强度向量
+        function calculateElectricField(x, y, z) {
+            let totalEx = 0;
+            let totalEy = 0;
+            let totalEz = 0;
+            
+            charges.forEach(charge => {
+                const dx = x - charge.x;
+                const dy = y - charge.y;
+                const dz = z - charge.z;
+                const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                
+                // 避免除以零
+                if (r < 8) return;
+                
+                // 库仑定律：E ∝ q / r²
+                const q = charge.type === 'positive' ? charge.strength : -charge.strength;
+                const E = q / (r * r * r); // 这里用r³是因为下面要乘以距离向量(dx, dy, dz)
+                
+                // 计算电场分量
+                totalEx += E * dx;
+                totalEy += E * dy;
+                totalEz += E * dz;
+            });
+            
+            return { x: totalEx, y: totalEy, z: totalEz };
+        }
+        
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        // 开始动画循环
+        animate();
+    </script>
+</body>
+</html>
